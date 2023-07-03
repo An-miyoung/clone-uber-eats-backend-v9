@@ -6,6 +6,8 @@ import { RestaurantsModule } from './restaurants/restaurants.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule } from '@nestjs/config';
 import { Restaurant } from './restaurants/entities/restaurant.entity';
+import { UsersModule } from './users/users.module';
+import { User } from './users/entities/user.entity';
 
 @Module({
   imports: [
@@ -35,8 +37,8 @@ import { Restaurant } from './restaurants/entities/restaurant.entity';
       // data 를 자동으로 만들것인지에 대한 옵션
       // 실제 deploy 될때는 기존 DB 를 사용할수 있으므로 자동만들기 금지
       synchronize: process.env.NODE_ENV !== 'prod',
-      logging: true,
-      entities: [Restaurant],
+      logging: process.env.NODE_ENV !== 'prod',
+      entities: [User, Restaurant],
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
@@ -44,6 +46,7 @@ import { Restaurant } from './restaurants/entities/restaurant.entity';
       autoSchemaFile: true,
     }),
     RestaurantsModule,
+    UsersModule,
   ],
   controllers: [],
   providers: [],
