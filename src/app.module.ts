@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { Restaurant } from './restaurants/entities/restaurant.entity';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
+import { JwtModule } from './jwt/jwt.module';
 
 @Module({
   imports: [
@@ -45,6 +46,9 @@ import { User } from './users/entities/user.entity';
       driver: ApolloDriver,
       // schema.gql 파일을 만들지 않으려면
       autoSchemaFile: true,
+    }),
+    JwtModule.forRoot({
+      privateKey: process.env.PRIVATE_KEY,
     }),
     RestaurantsModule,
     UsersModule,
