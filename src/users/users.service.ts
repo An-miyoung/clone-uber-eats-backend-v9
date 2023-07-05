@@ -22,15 +22,20 @@ export class UsersService {
       // 새로운 user 인지 확인
       const exists = await this.users.findOneBy({ email });
       if (exists) {
-        throw Error('이미 가입된 이메일입니다.');
+        return {
+          error: '이미 가입된 이메일입니다.',
+          ok: false,
+        };
       }
+      // 비밀번호를 해싱하는 로직은 entity 안에 method 로 넣고,
+      // typeOrm listener @BeforeInsert 를 통해 저장전에 해싱된다.
       await this.users.save(this.users.create({ email, password, role }));
       return {
         ok: true,
       };
-    } catch (error) {
+    } catch {
       return {
-        error,
+        error: '새로운 계정 만들기에 실패했습니다.',
         ok: false,
       };
     }
