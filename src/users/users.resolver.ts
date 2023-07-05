@@ -5,6 +5,7 @@ import {
   CreateAccountInput,
   CreateAccountOutput,
 } from './dtos/create-account.dto';
+import { LoginInput, LoginOutput } from './dtos/login.dto';
 
 @Resolver((of) => User)
 export class UsersResolver {
@@ -15,5 +16,10 @@ export class UsersResolver {
     @Args('input') createAccountInput: CreateAccountInput,
   ): Promise<CreateAccountOutput> {
     return this.userService.createAccount(createAccountInput);
+  }
+
+  @Mutation(() => LoginOutput)
+  login(@Args('input') loginInput: LoginInput): Promise<LoginOutput> {
+    return this.userService.login(loginInput);
   }
 }

@@ -2,15 +2,19 @@ import { Injectable } from '@nestjs/common';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import * as jwt from 'jsonwebtoken';
 import {
   CreateAccountInput,
   CreateAccountOutput,
 } from './dtos/create-account.dto';
+import { LoginInput, LoginOutput } from './dtos/login.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    private readonly config: ConfigService,
   ) {}
 
   async createAccount({
@@ -36,6 +40,41 @@ export class UsersService {
     } catch {
       return {
         error: '새로운 계정 만들기에 실패했습니다.',
+        ok: false,
+      };
+    }
+  }
+
+  async login({ email, password }: LoginInput): Promise<LoginOutput> {
+    try {
+      // 1. email user 첮기
+      const user = await this.users.findOneBy({ email });
+      if (!user) {
+        return {
+          error: '가입하지 않은 이메일입니다.',
+          ok: false,
+        };
+      }
+      // 2. 비밀번호를 가져와서 입력된 비밀번호와 맞는지 확인
+      const passwordCorrect = await user.checkPassword(password);
+      if (!passwordCorrect) {
+        return {
+          error: '비밀번호가 다릅니다.',
+          ok: false,
+        };
+      }
+      // 3. token 발행
+      const token = jwt.sign(
+        { id: user.email },
+        this.config.get('PRIVATE_KEY'),
+      );
+      return {
+        ok: true,
+        token,
+      };
+    } catch {
+      return {
+        error: '로그인에 실패했습니다.',
         ok: false,
       };
     }

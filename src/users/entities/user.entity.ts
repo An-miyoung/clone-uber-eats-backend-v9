@@ -4,7 +4,7 @@ import {
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
-import { IsEmail, IsString } from 'class-validator';
+import { IsEmail, IsEnum } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
 import { BeforeInsert, Column, Entity } from 'typeorm';
 import * as bcrypt from 'bcrypt';
@@ -30,11 +30,11 @@ export class User extends CoreEntity {
 
   @Column()
   @Field(() => String)
-  @IsString()
   password: string;
 
   @Column({ type: 'enum', enum: UserRole })
   @Field(() => UserRole)
+  @IsEnum(UserRole)
   role: UserRole;
 
   // TypeOrm 이 제공하는 listener, entity 에게 특정메소드를 붙여준다.
@@ -42,6 +42,15 @@ export class User extends CoreEntity {
   async hashPassword(): Promise<void> {
     try {
       this.password = await bcrypt.hash(this.password, 10);
+    } catch (error) {
+      console.log(error);
+      throw new InternalServerErrorException();
+    }
+  }
+
+  async checkPassword(inputPassword: string): Promise<boolean> {
+    try {
+      return await bcrypt.compare(inputPassword, this.password);
     } catch (error) {
       console.log(error);
       throw new InternalServerErrorException();
