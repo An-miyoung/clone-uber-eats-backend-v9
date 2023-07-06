@@ -8,6 +8,8 @@ import {
 } from './dtos/create-account.dto';
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { JwtService } from 'src/jwt/jwt.service';
+import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
+import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 
 @Injectable()
 export class UsersService {
@@ -78,5 +80,50 @@ export class UsersService {
 
   async findById(id: number): Promise<User> {
     return await this.users.findOneBy({ id });
+  }
+
+  async userProfile({ userId }: UserProfileInput): Promise<UserProfileOutput> {
+    try {
+      const user = await this.users.findOneBy({ id: userId });
+      if (!user) {
+        return {
+          error: '사용자가 존재하지 않습니다.',
+          ok: false,
+        };
+      }
+      return {
+        ok: true,
+        user,
+      };
+    } catch {
+      return {
+        error: '사용자 계정 읽어오기에 실패했습니다.',
+        ok: false,
+      };
+    }
+  }
+
+  async editProfile(
+    userId: number,
+    { email, password }: EditProfileInput,
+  ): Promise<EditProfileOutput> {
+    try {
+      const user = await this.users.findOneBy({ id: userId });
+      if (email) {
+        user.email = email;
+      }
+      if (password) {
+        user.password = password;
+      }
+      await this.users.save(user);
+      return {
+        ok: true,
+      };
+    } catch {
+      return {
+        error: '사용자 계정 수정에 실패했습니다.',
+        ok: false,
+      };
+    }
   }
 }

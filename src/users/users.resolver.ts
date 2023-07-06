@@ -9,6 +9,8 @@ import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { UseGuards } from '@nestjs/common';
 import { AuthUser } from 'src/auth/auth-user.decorator';
+import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
+import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 
 @Resolver((of) => User)
 export class UsersResolver {
@@ -34,5 +36,22 @@ export class UsersResolver {
   @UseGuards(AuthGuard)
   me(@AuthUser() user: User) {
     return user;
+  }
+
+  @UseGuards(AuthGuard)
+  @Query(() => UserProfileOutput)
+  userProfile(
+    @Args('input') userProfileInput: UserProfileInput,
+  ): Promise<UserProfileOutput> {
+    return this.userService.userProfile(userProfileInput);
+  }
+
+  @UseGuards(AuthGuard)
+  @Mutation(() => EditProfileOutput)
+  editProfile(
+    @AuthUser() user: User,
+    @Args('input') editProfileInput: EditProfileInput,
+  ): Promise<EditProfileOutput> {
+    return this.userService.editProfile(user.id, editProfileInput);
   }
 }
