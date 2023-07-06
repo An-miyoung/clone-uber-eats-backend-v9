@@ -79,9 +79,4 @@ export class UsersService {
   async findById(id: number): Promise<User> {
     return await this.users.findOneBy({ id });
   }
-
-  async me() {
-    try {
-    } catch {}
-  }
 }

@@ -1,4 +1,4 @@
-import { Args, Context, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { User } from './entities/user.entity';
 import { UsersService } from './users.service';
 import {
@@ -8,6 +8,7 @@ import {
 import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { AuthGuard } from 'src/auth/auth.guard';
 import { UseGuards } from '@nestjs/common';
+import { AuthUser } from 'src/auth/auth-user.decorator';
 
 @Resolver((of) => User)
 export class UsersResolver {
@@ -31,5 +32,7 @@ export class UsersResolver {
   // 그러나 nest 에서 제공하는 guard class 를 이용해 context 에서 가져온 내용을 판단해 true/falsa 리턴
   @Query(() => User)
   @UseGuards(AuthGuard)
-  me() {}
+  me(@AuthUser() user: User) {
+    return user;
+  }
 }
