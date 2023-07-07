@@ -11,6 +11,7 @@ import { UseGuards } from '@nestjs/common';
 import { AuthUser } from 'src/auth/auth-user.decorator';
 import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
+import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
 
 @Resolver((of) => User)
 export class UsersResolver {
@@ -53,5 +54,12 @@ export class UsersResolver {
     @Args('input') editProfileInput: EditProfileInput,
   ): Promise<EditProfileOutput> {
     return this.userService.editProfile(user.id, editProfileInput);
+  }
+
+  @Mutation(() => VerifyEmailOutput)
+  verifyEmail(
+    @Args('input') verifyEmailInput: VerifyEmailInput,
+  ): Promise<VerifyEmailOutput> {
+    return this.userService.verifyEmail(verifyEmailInput);
   }
 }

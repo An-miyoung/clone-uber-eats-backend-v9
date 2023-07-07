@@ -10,11 +10,15 @@ import { LoginInput, LoginOutput } from './dtos/login.dto';
 import { JwtService } from 'src/jwt/jwt.service';
 import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
+import { Verification } from './entities/verification.entity';
+import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User) private readonly users: Repository<User>,
+    @InjectRepository(Verification)
+    private readonly verifications: Repository<Verification>,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -34,7 +38,11 @@ export class UsersService {
       }
       // 비밀번호를 해싱하는 로직은 entity 안에 method 로 넣고,
       // typeOrm listener @BeforeInsert 를 통해 저장전에 해싱된다.
-      await this.users.save(this.users.create({ email, password, role }));
+      const user = await this.users.save(
+        this.users.create({ email, password, role }),
+      );
+      // email verification
+      await this.verifications.save(this.verifications.create({ user }));
       return {
         ok: true,
       };
@@ -49,7 +57,12 @@ export class UsersService {
   async login({ email, password }: LoginInput): Promise<LoginOutput> {
     try {
       // 1. email user 첮기
-      const user = await this.users.findOneBy({ email });
+      const user = await this.users.findOne({
+        where: { email },
+        // entity 선언과 상관없이 select 한 필드만 불러온다. token 을 만들때 id 는 필수
+        select: ['id', 'password'],
+      });
+      console.log(user);
       if (!user) {
         return {
           error: '가입하지 않은 이메일입니다.',
@@ -108,9 +121,18 @@ export class UsersService {
     { email, password }: EditProfileInput,
   ): Promise<EditProfileOutput> {
     try {
+      // @UseGuard 를 통해 인증이 끝났기 때문에 비밀번호를 불러오지 않아도 된다.
+      // 만약 비번을 고칠때 과거 비번체크를 한다면
+      // findOne({ where: { id: userId },select: ['id', 'password']})
+      // 사용해 읽어들여야 한다.
       const user = await this.users.findOneBy({ id: userId });
       if (email) {
         user.email = email;
+        user.verified = false;
+        // this.verifications.delete(verification.id) 로 삭제할 수 있지만,
+        // 유저아이디에 연결된 verification 을 삭제 하는 방법이 더 바람직.
+        this.verifications.delete({ user: { id: userId } });
+        await this.verifications.save(this.verifications.create({ user }));
       }
       if (password) {
         user.password = password;
@@ -122,6 +144,29 @@ export class UsersService {
     } catch {
       return {
         error: '사용자 계정 수정에 실패했습니다.',
+        ok: false,
+      };
+    }
+  }
+
+  // verification repo 에 코드가 있다면 연결된 유저의 verified 를 true 로 바꿔서 저장하는 함수
+  async verifyEmail({ code }: VerifyEmailInput): Promise<VerifyEmailOutput> {
+    try {
+      const verification = await this.verifications.findOne({
+        where: { code },
+        // userId 만 필요하다면 loadRelationIds: true
+        relations: ['user'],
+      });
+      if (verification) {
+        verification.user.verified = true;
+        await this.users.save(verification.user);
+      }
+      return {
+        ok: true,
+      };
+    } catch {
+      return {
+        error: '이메일인증에 실패했습니다.',
         ok: false,
       };
     }
