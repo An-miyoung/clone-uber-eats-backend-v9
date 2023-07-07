@@ -1,7 +1,7 @@
 import { DynamicModule, Global, Module } from '@nestjs/common';
 import { JwtService } from './jwt.service';
 import { JwtModuleOptions } from './jwt.interface';
-import { CONFIG_OPTIONS } from './jwt.constants';
+import { CONFIG_OPTIONS } from '../common/commom.constants';
 
 @Module({})
 // jwtService 를 부르고 싶은 모듈 useModule 에서 imports array 에 JwtService 를 넣으면

@@ -12,6 +12,7 @@ import { UserProfileInput, UserProfileOutput } from './dtos/user-profile.dto';
 import { EditProfileInput, EditProfileOutput } from './dtos/edit-profile.dto';
 import { Verification } from './entities/verification.entity';
 import { VerifyEmailInput, VerifyEmailOutput } from './dtos/verify-email.dto';
+import { MailService } from 'src/mail/mail.service';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +21,7 @@ export class UsersService {
     @InjectRepository(Verification)
     private readonly verifications: Repository<Verification>,
     private readonly jwtService: JwtService,
+    private readonly mailService: MailService,
   ) {}
 
   async createAccount({
@@ -41,8 +43,15 @@ export class UsersService {
       const user = await this.users.save(
         this.users.create({ email, password, role }),
       );
-      // email verification
-      await this.verifications.save(this.verifications.create({ user }));
+      // email verification 생성
+      const verification = await this.verifications.save(
+        this.verifications.create({ user }),
+      );
+      this.mailService.sendVerficationEmail(
+        verification.code,
+        user.email,
+        'verify-email',
+      );
       return {
         ok: true,
       };
@@ -62,7 +71,6 @@ export class UsersService {
         // entity 선언과 상관없이 select 한 필드만 불러온다. token 을 만들때 id 는 필수
         select: ['id', 'password'],
       });
-      console.log(user);
       if (!user) {
         return {
           error: '가입하지 않은 이메일입니다.',
@@ -132,7 +140,14 @@ export class UsersService {
         // this.verifications.delete(verification.id) 로 삭제할 수 있지만,
         // 유저아이디에 연결된 verification 을 삭제 하는 방법이 더 바람직.
         this.verifications.delete({ user: { id: userId } });
-        await this.verifications.save(this.verifications.create({ user }));
+        const verification = await this.verifications.save(
+          this.verifications.create({ user }),
+        );
+        this.mailService.sendVerficationEmail(
+          verification.code,
+          user.email,
+          'change-email',
+        );
       }
       if (password) {
         user.password = password;
