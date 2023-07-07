@@ -4,11 +4,12 @@ import {
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
-import { IsEmail, IsEnum } from 'class-validator';
+import { IsBoolean, IsEmail, IsEnum, IsString } from 'class-validator';
 import { CoreEntity } from 'src/common/entities/core.entity';
-import { BeforeInsert, BeforeUpdate, Column, Entity } from 'typeorm';
+import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
+import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
 
 enum UserRole {
   Client,
@@ -23,23 +24,29 @@ registerEnumType(UserRole, { name: 'UseRole' });
 @ObjectType()
 @Entity()
 export class User extends CoreEntity {
-  @Column()
   @Field(() => String)
+  @Column()
   @IsEmail()
   email: string;
 
-  @Column({ select: false })
   @Field(() => String)
+  @Column({ select: false })
+  @IsString()
   password: string;
 
-  @Column({ type: 'enum', enum: UserRole })
   @Field(() => UserRole)
+  @Column({ type: 'enum', enum: UserRole })
   @IsEnum(UserRole)
   role: UserRole;
 
-  @Column({ default: false })
   @Field(() => Boolean)
+  @Column({ default: false })
+  @IsBoolean()
   verified: boolean;
+
+  @Field(() => [Restaurant])
+  @OneToMany(() => Restaurant, (restaurnat) => restaurnat.owner)
+  restaurants: Restaurant[];
 
   // TypeOrm 이 제공하는 listener, entity 에게 특정메소드를 붙여준다.
   @BeforeInsert()
