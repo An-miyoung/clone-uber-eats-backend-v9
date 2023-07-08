@@ -11,10 +11,11 @@ import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
 
-enum UserRole {
-  Client,
-  Owner,
-  Driver,
+// 모양이 복잡한 이유는 DB 에 0,1,2 가 아닌 'Clent', 'Owner','Delivery'로 표시하기 위해
+export enum UserRole {
+  Client = 'Client',
+  Owner = 'Owner',
+  Delivery = 'Delivery',
 }
 
 // graphQl 용 enum 등록
@@ -45,7 +46,9 @@ export class User extends CoreEntity {
   verified: boolean;
 
   @Field(() => [Restaurant])
-  @OneToMany(() => Restaurant, (restaurnat) => restaurnat.owner)
+  @OneToMany(() => Restaurant, (restaurnat) => restaurnat.owner, {
+    onDelete: 'CASCADE',
+  })
   restaurants: Restaurant[];
 
   // TypeOrm 이 제공하는 listener, entity 에게 특정메소드를 붙여준다.

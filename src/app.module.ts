@@ -18,6 +18,7 @@ import { MailModule } from './mail/mail.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
 import { Restaurant } from './restaurant/entities/restaurant.entity';
 import { Category } from './restaurant/entities/category.entity';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -71,6 +72,7 @@ import { Category } from './restaurant/entities/category.entity';
     }),
     UsersModule,
     RestaurantModule,
+    AuthModule,
   ],
   controllers: [],
   providers: [],
