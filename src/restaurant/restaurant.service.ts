@@ -16,6 +16,7 @@ import {
   DeleteRestaurantInput,
   DeleteRestaurantOutput,
 } from './dtos/delete-restaurant.dto';
+import { AllCategoriesOutput } from './dtos/all-categories.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -141,6 +142,39 @@ export class RestaurantService {
         ok: false,
         error: '레스토랑을 삭제하는데 실패했습니다.',
       };
+    }
+  }
+
+  async allCategories(): Promise<AllCategoriesOutput> {
+    try {
+      const categories = await this.categories.find();
+      if (categories.length === 0) {
+        return {
+          ok: false,
+          error: '카테고리가 없습니다.',
+        };
+      }
+      return {
+        ok: true,
+        categories,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '모든 카테고리를 불러오는데 실패했습니다.',
+      };
+    }
+  }
+
+  // category 가 불릴때마다 restaurant reposiroty 를 돌며 숫자를 센다.
+  async countRestaurant(category: Category): Promise<number> {
+    try {
+      return this.restaurants.count({
+        where: { category: { id: category.id } },
+      });
+    } catch (error) {
+      console.log(error.message);
+      return null;
     }
   }
 }
