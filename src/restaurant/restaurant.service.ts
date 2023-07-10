@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Restaurant } from './entities/restaurant.entity';
-import { Repository } from 'typeorm';
+import { Like, Raw, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreateRestaurantInput,
@@ -19,6 +19,11 @@ import {
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
 import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 import { RestaurantsInput, RestaurantsOutput } from './dtos/restaurants.dto';
+import { RestaurantInput, RestaurantOutput } from './dtos/restaurant.dto';
+import {
+  SearchRestaurantInput,
+  SearchRestaurantOutput,
+} from './dtos/search-restaurant.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -224,13 +229,13 @@ export class RestaurantService {
     itemsPerOnePage,
   }: RestaurantsInput): Promise<RestaurantsOutput> {
     try {
-      const [results, totalResults] = await this.restaurants.findAndCount({
+      const [restaurants, totalResults] = await this.restaurants.findAndCount({
         take: itemsPerOnePage,
         skip: (page - 1) * itemsPerOnePage,
       });
       return {
         ok: true,
-        results,
+        restaurants,
         totalPages: Math.ceil(totalResults / itemsPerOnePage),
         totalResults,
       };
@@ -238,6 +243,65 @@ export class RestaurantService {
       return {
         ok: false,
         error: '레스토랑을 불러오는데 실패했습니다.',
+      };
+    }
+  }
+
+  async findRestaurantById({
+    restaurantId,
+  }: RestaurantInput): Promise<RestaurantOutput> {
+    try {
+      const restaurant = await this.restaurants.findOneBy({ id: restaurantId });
+      if (!restaurant) {
+        return {
+          ok: false,
+          error: '해당 레스토랑이 존재하지 않습니다.',
+        };
+      }
+      return {
+        ok: true,
+        restaurant,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '해당 레스토랑을 찾는데 실패했습니다.',
+      };
+    }
+  }
+
+  async searchRestaurantByName({
+    query,
+    page,
+    itemsPerOnePage,
+  }: SearchRestaurantInput): Promise<SearchRestaurantOutput> {
+    try {
+      const [restaurants, totalResults] = await this.restaurants.findAndCount({
+        where: {
+          // querty 가 검색에 어디에 있는 찾는 Like(% %) 사용
+          // name: Like(`%${query}%`),
+          // Like 를 사용하면 대소문자를 구별해서 직접 sql 문을 만든다
+          name: Raw((name) => `${name} ILike '%${query}%'`),
+        },
+        take: itemsPerOnePage,
+        skip: (page - 1) * itemsPerOnePage,
+      });
+      if (restaurants.length === 0) {
+        return {
+          ok: false,
+          error: '해당 레스토랑이 존재하지 않습니다.',
+        };
+      }
+      return {
+        ok: true,
+        restaurants,
+        totalResults,
+        totalPages: Math.ceil(totalResults / itemsPerOnePage),
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '해당 레스토랑을 찾는데 실패했습니다.',
       };
     }
   }
