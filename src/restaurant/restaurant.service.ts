@@ -17,6 +17,7 @@ import {
   DeleteRestaurantOutput,
 } from './dtos/delete-restaurant.dto';
 import { AllCategoriesOutput } from './dtos/all-categories.dto';
+import { CategoryInput, CategoryOutput } from './dtos/category.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -175,6 +176,33 @@ export class RestaurantService {
     } catch (error) {
       console.log(error.message);
       return null;
+    }
+  }
+
+  async findCategoryBySlug({ slug }: CategoryInput): Promise<CategoryOutput> {
+    try {
+      const category = await this.categories.findOne({
+        where: { slug },
+        // category 와 restaurant 는 연결되어 있을뿐 category table 에 직접 있는 내용이 아니므로
+        relations: ['restaurants'],
+      });
+      console.log(slug);
+      console.log(category);
+      if (!category) {
+        return {
+          ok: false,
+          error: '해당되는 카테고리가 없습니다.',
+        };
+      }
+      return {
+        ok: true,
+        category,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '카테고리를 읽어오는데 실패했습니다.',
+      };
     }
   }
 }
