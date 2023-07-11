@@ -10,6 +10,7 @@ import { BeforeInsert, BeforeUpdate, Column, Entity, OneToMany } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { InternalServerErrorException } from '@nestjs/common';
 import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
+import { Order } from 'src/orders/entities/order.entity';
 
 // 모양이 복잡한 이유는 DB 에 0,1,2 가 아닌 'Clent', 'Owner','Delivery'로 표시하기 위해
 export enum UserRole {
@@ -50,6 +51,15 @@ export class User extends CoreEntity {
     onDelete: 'CASCADE',
   })
   restaurants: Restaurant[];
+
+  @Field(() => [Order])
+  @OneToMany(() => Order, (order) => order.customer)
+  orders: [Order];
+
+  // deliver 용
+  @Field(() => [Order])
+  @OneToMany(() => Order, (order) => order.driver)
+  rides: [Order];
 
   // TypeOrm 이 제공하는 listener, entity 에게 특정메소드를 붙여준다.
   @BeforeInsert()
