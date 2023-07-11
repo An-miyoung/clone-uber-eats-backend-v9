@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Restaurant } from './entities/restaurant.entity';
-import { Like, Raw, Repository } from 'typeorm';
+import { Raw, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CreateRestaurantInput,
@@ -24,6 +24,8 @@ import {
   SearchRestaurantInput,
   SearchRestaurantOutput,
 } from './dtos/search-restaurant.dto';
+import { CreateDishInput, CreateDishOutput } from './dtos/create-dish.dto';
+import { Dish } from './entities/dish.entity';
 
 @Injectable()
 export class RestaurantService {
@@ -32,6 +34,7 @@ export class RestaurantService {
     private readonly restaurants: Repository<Restaurant>,
     @InjectRepository(Category)
     private readonly categories: Repository<Category>,
+    @InjectRepository(Dish) private readonly dishes: Repository<Dish>,
   ) {}
 
   async getOrCreateCategory(categoryName: string) {
@@ -251,7 +254,12 @@ export class RestaurantService {
     restaurantId,
   }: RestaurantInput): Promise<RestaurantOutput> {
     try {
-      const restaurant = await this.restaurants.findOneBy({ id: restaurantId });
+      const restaurant = await this.restaurants.findOne({
+        where: { id: restaurantId },
+        // menu 는 restaurant table 에 있는 내용이 아니라 Dish table 내용을 연결해놓은 것뿐이기에
+        // 불러오고 싶다면 ralations 로 연결해줘야 한다.
+        relations: ['menu'],
+      });
       if (!restaurant) {
         return {
           ok: false,
@@ -302,6 +310,46 @@ export class RestaurantService {
       return {
         ok: false,
         error: '해당 레스토랑을 찾는데 실패했습니다.',
+      };
+    }
+  }
+
+  async createDish(
+    owner: User,
+    createDishInput: CreateDishInput,
+  ): Promise<CreateDishOutput> {
+    try {
+      const restaurant = await this.restaurants.findOneBy({
+        id: createDishInput.restaurantId,
+      });
+      if (!restaurant) {
+        return {
+          ok: false,
+          error: '해당 레스토랑이 존재하지 않습니다.',
+        };
+      }
+      if (owner.id !== restaurant.ownerId) {
+        return {
+          ok: false,
+          error: '메뉴를 생성할 권한이 없습니다.',
+        };
+      }
+
+      // 인자로 restaurantId 를 줘도 dishes.create 에서 직접 연결해 가져가지 않는다.
+      // const dish = this.dishes.create(createDishInput);
+      // dish['restaurantId'] = createDishInput.restaurantId;
+      // 이런 형태로 { ...createDishInput, restaurant } 넣어줘야 한다.
+      await this.dishes.save(
+        this.dishes.create({ ...createDishInput, restaurant }),
+      );
+
+      return {
+        ok: true,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '메뉴생성에 실패했습니다.',
       };
     }
   }
