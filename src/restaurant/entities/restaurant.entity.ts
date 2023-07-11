@@ -7,7 +7,7 @@ import { User } from 'src/users/entities/user.entity';
 import { Dish } from './dish.entity';
 import { Order } from 'src/orders/entities/order.entity';
 
-@InputType({ isAbstract: true })
+@InputType('RestaurantInputType', { isAbstract: true })
 @ObjectType()
 @Entity()
 export class Restaurant extends CoreEntity {

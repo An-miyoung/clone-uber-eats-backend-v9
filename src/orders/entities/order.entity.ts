@@ -2,7 +2,6 @@ import {
   Field,
   Float,
   InputType,
-  Int,
   ObjectType,
   registerEnumType,
 } from '@nestjs/graphql';
@@ -19,7 +18,6 @@ export enum OrderStatus {
   PickedUp = 'PickedUp',
   Delivered = 'Delivered',
 }
-
 registerEnumType(OrderStatus, { name: 'OrderStatus' });
 
 @InputType('OrderInputType', { isAbstract: true })
