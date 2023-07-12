@@ -22,6 +22,7 @@ import { AuthModule } from './auth/auth.module';
 import { Dish } from './restaurant/entities/dish.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Order } from './orders/entities/order.entity';
+import { OrderItem } from './orders/entities/order-item.entity';
 
 @Module({
   imports: [
@@ -56,7 +57,15 @@ import { Order } from './orders/entities/order.entity';
       // 실제 deploy 될때는 기존 DB 를 사용할수 있으므로 자동만들기 금지
       synchronize: process.env.NODE_ENV !== 'prod',
       logging: process.env.NODE_ENV !== 'prod',
-      entities: [User, Verification, Restaurant, Category, Dish, Order],
+      entities: [
+        User,
+        Verification,
+        Restaurant,
+        Category,
+        Dish,
+        Order,
+        OrderItem,
+      ],
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,

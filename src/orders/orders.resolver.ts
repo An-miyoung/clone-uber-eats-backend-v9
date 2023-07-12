@@ -13,9 +13,9 @@ export class OrderResolver {
   @Mutation(() => CreateOrderOutput)
   @Role(['Client'])
   createOrder(
-    @AuthUser() client: User,
+    @AuthUser() customer: User,
     @Args('input') createOrderInput: CreateOrderInput,
   ): Promise<CreateOrderOutput> {
-    return this.orderService.createOrder(client, createOrderInput);
+    return this.orderService.createOrder(customer, createOrderInput);
   }
 }
