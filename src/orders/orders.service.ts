@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Order } from './entities/order.entity';
+import { Order, OrderStatus } from './entities/order.entity';
 import { Repository } from 'typeorm';
 import { User, UserRole } from 'src/users/entities/user.entity';
 import { CreateOrderInput, CreateOrderOutput } from './dtos/create-order.dto';
@@ -9,6 +9,8 @@ import { OrderItem } from './entities/order-item.entity';
 import { Dish } from 'src/restaurant/entities/dish.entity';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
+import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
+import { EditDishInput } from 'src/restaurant/dtos/edit-dish.dto';
 
 @Injectable()
 export class OrderService {
@@ -164,13 +166,10 @@ export class OrderService {
     }
   }
 
-  async getOrder(
-    user: User,
-    { id: orderId }: GetOrderInput,
-  ): Promise<GetOrderOutput> {
+  async getOrder(user: User, { id }: GetOrderInput): Promise<GetOrderOutput> {
     try {
       const order = await this.orders.findOne({
-        where: { id: orderId },
+        where: { id },
         relations: ['restaurant'],
       });
       if (!order) {
@@ -195,6 +194,71 @@ export class OrderService {
       return {
         ok: false,
         error: '해당 주문을 읽어오는데 실패했습니다.',
+      };
+    }
+  }
+
+  async editOrder(
+    user: User,
+    { id, status }: EditOrderInput,
+  ): Promise<EditOrderOutput> {
+    try {
+      const order = await this.orders.findOne({
+        where: { id },
+        relations: ['restaurant'],
+      });
+      if (!order) {
+        return {
+          ok: false,
+          error: '존재하지 않는 주문입니다.',
+        };
+      }
+
+      if (!this.checkPermission(user, order)) {
+        return {
+          ok: false,
+          error: '주문을 편집할 권한이 없습니다.',
+        };
+      }
+
+      let gotEditPermission = true;
+      if (user.role === UserRole.Client) {
+        gotEditPermission = false;
+      }
+      if (user.role === UserRole.Delivery) {
+        if (status !== OrderStatus.Cooking && status !== OrderStatus.Cooked) {
+          gotEditPermission = false;
+        }
+      }
+      if (user.role === UserRole.Owner) {
+        if (
+          status !== OrderStatus.PickedUp &&
+          status !== OrderStatus.Delivered
+        ) {
+          gotEditPermission = false;
+        }
+      }
+      if (!gotEditPermission) {
+        return {
+          ok: false,
+          error: '주문을 편집할 권한이 없습니다.',
+        };
+      }
+      //  save 는 DB 에 있는 아이템이면 변화된 부분을 바꿔서 넣어준다.
+      await this.orders.save([
+        {
+          id,
+          status,
+        },
+      ]);
+
+      return {
+        ok: true,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '해당주문 수정하는데 실패했습니다.',
       };
     }
   }
