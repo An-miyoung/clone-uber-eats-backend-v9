@@ -8,6 +8,7 @@ import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
 import { OrderItem } from './entities/order-item.entity';
 import { Dish } from 'src/restaurant/entities/dish.entity';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
+import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -146,6 +147,44 @@ export class OrderService {
       return {
         ok: false,
         error: '주문목록을 가져오는데 실패했습니다.',
+      };
+    }
+  }
+
+  async getOrder(
+    user: User,
+    { id: orderId }: GetOrderInput,
+  ): Promise<GetOrderOutput> {
+    try {
+      const order = await this.orders.findOne({
+        where: { id: orderId },
+        relations: ['restaurant'],
+      });
+      if (!order) {
+        return {
+          ok: false,
+          error: '존재하지 않는 주문입니다.',
+        };
+      }
+      if (
+        // order entity 에서 @RelationId
+        order.customerId !== user.id &&
+        order.driverId !== user.id &&
+        order.restaurant.ownerId !== user.id
+      ) {
+        return {
+          ok: false,
+          error: '주문을 읽을 권한이 없습니다.',
+        };
+      }
+      return {
+        ok: true,
+        order,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '해당 주문을 읽어오는데 실패했습니다.',
       };
     }
   }
