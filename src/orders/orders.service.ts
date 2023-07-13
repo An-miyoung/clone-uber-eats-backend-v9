@@ -151,6 +151,19 @@ export class OrderService {
     }
   }
 
+  checkPermission(user: User, order: Order): boolean {
+    // order entity 에서 @RelationId로 선언
+    if (user.role === UserRole.Client && order.customerId !== user.id) {
+      return false;
+    }
+    if (user.role === UserRole.Delivery && order.driverId !== user.id) {
+      return false;
+    }
+    if (user.role === UserRole.Owner && order.restaurant.ownerId !== user.id) {
+      return false;
+    }
+  }
+
   async getOrder(
     user: User,
     { id: orderId }: GetOrderInput,
@@ -166,17 +179,14 @@ export class OrderService {
           error: '존재하지 않는 주문입니다.',
         };
       }
-      if (
-        // order entity 에서 @RelationId
-        order.customerId !== user.id &&
-        order.driverId !== user.id &&
-        order.restaurant.ownerId !== user.id
-      ) {
+
+      if (!this.checkPermission(user, order)) {
         return {
           ok: false,
-          error: '주문을 읽을 권한이 없습니다.',
+          error: '주문을 볼 권한이 없습니다.',
         };
       }
+
       return {
         ok: true,
         order,
