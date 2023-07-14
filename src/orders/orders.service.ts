@@ -242,7 +242,7 @@ export class OrderService {
       if (!gotEditPermission) {
         return {
           ok: false,
-          error: '주문을 수정할 권한이 없습니다..',
+          error: '주문을 수정할 권한이 없습니다.',
         };
       }
       //  save 는 DB 에 있는 아이템이면 변화된 부분을 바꿔서 넣어준다.

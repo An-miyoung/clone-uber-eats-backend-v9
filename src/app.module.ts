@@ -23,6 +23,7 @@ import { Dish } from './restaurant/entities/dish.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
+import { Context } from 'vm';
 
 @Module({
   imports: [
@@ -69,10 +70,21 @@ import { OrderItem } from './orders/entities/order-item.entity';
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
+      // installSubscriptionHandlers: true, 도 ws연결은 되지만,
+      //  context 를 가져오는데 문제가 생긴다.
+      subscriptions: {
+        'subscriptions-transport-ws': {
+          onConnect: (connectionParams: any) => {
+            return { token: connectionParams['x-jwt'] };
+          },
+        },
+      },
       // schema.gql 파일을 만들지 않으려면
       autoSchemaFile: true,
       // http req 에 넣은 user 정보를 모든 graphql resolver 와 공유하기 위해
-      context: ({ req }) => ({ user: req['user'] }),
+      context: ({ req }) => {
+        return { token: req.headers['x-jwt'] };
+      },
     }),
     JwtModule.forRoot({
       privateKey: process.env.PRIVATE_KEY,
@@ -90,12 +102,13 @@ import { OrderItem } from './orders/entities/order-item.entity';
   controllers: [],
   providers: [],
 })
-// middleware를 사용하기 위한 선언
-export class AppModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(JwtMiddleware).forRoutes({
-      path: '*',
-      method: RequestMethod.ALL,
-    });
-  }
-}
+// http req를 이용위한 middleware를 사용하기 위한 선언 했으나 subscriptions 인증을 위해 다른 방법 사용
+// export class AppModule implements NestModule {
+//   configure(consumer: MiddlewareConsumer) {
+//     consumer.apply(JwtMiddleware).forRoutes({
+//       path: '*',
+//       method: RequestMethod.ALL,
+//     });
+//   }
+// }
+export class AppModule {}

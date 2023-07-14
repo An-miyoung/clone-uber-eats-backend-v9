@@ -8,12 +8,13 @@ export class JwtService {
   constructor(
     @Inject(CONFIG_OPTIONS) private readonly options: JwtModuleOptions,
   ) {}
+  secretKey = Buffer.from(this.options.privateKey, 'base64');
 
-  sign(payload: object): string {
-    return jwt.sign(payload, this.options.privateKey);
+  sign(userId: number): string {
+    return jwt.sign({ id: userId }, this.secretKey);
   }
 
   verify(token: string) {
-    return jwt.verify(token, this.options.privateKey);
+    return jwt.verify(token, this.secretKey);
   }
 }

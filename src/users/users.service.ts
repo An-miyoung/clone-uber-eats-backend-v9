@@ -86,7 +86,7 @@ export class UsersService {
         };
       }
       // 3. token 발행
-      const token = this.jwtService.sign({ id: user.id });
+      const token = this.jwtService.sign(user.id);
       return {
         ok: true,
         token,
