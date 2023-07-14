@@ -164,6 +164,7 @@ export class OrderService {
     if (user.role === UserRole.Owner && order.restaurant.ownerId !== user.id) {
       return false;
     }
+    return true;
   }
 
   async getOrder(user: User, { id }: GetOrderInput): Promise<GetOrderOutput> {
@@ -217,7 +218,7 @@ export class OrderService {
       if (!this.checkPermission(user, order)) {
         return {
           ok: false,
-          error: '주문을 편집할 권한이 없습니다.',
+          error: '주문에 대한 수정권한이 없습니다.',
         };
       }
 
@@ -225,12 +226,12 @@ export class OrderService {
       if (user.role === UserRole.Client) {
         gotEditPermission = false;
       }
-      if (user.role === UserRole.Delivery) {
+      if (user.role === UserRole.Owner) {
         if (status !== OrderStatus.Cooking && status !== OrderStatus.Cooked) {
           gotEditPermission = false;
         }
       }
-      if (user.role === UserRole.Owner) {
+      if (user.role === UserRole.Delivery) {
         if (
           status !== OrderStatus.PickedUp &&
           status !== OrderStatus.Delivered
@@ -241,7 +242,7 @@ export class OrderService {
       if (!gotEditPermission) {
         return {
           ok: false,
-          error: '주문을 편집할 권한이 없습니다.',
+          error: '주문을 수정할 권한이 없습니다..',
         };
       }
       //  save 는 DB 에 있는 아이템이면 변화된 부분을 바꿔서 넣어준다.
