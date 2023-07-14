@@ -1,9 +1,4 @@
-import {
-  MiddlewareConsumer,
-  Module,
-  NestModule,
-  RequestMethod,
-} from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import * as Joi from 'joi';
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
@@ -12,7 +7,6 @@ import { ConfigModule } from '@nestjs/config';
 import { UsersModule } from './users/users.module';
 import { User } from './users/entities/user.entity';
 import { JwtModule } from './jwt/jwt.module';
-import { JwtMiddleware } from './jwt/jwt.middlewares';
 import { Verification } from './users/entities/verification.entity';
 import { MailModule } from './mail/mail.module';
 import { RestaurantModule } from './restaurant/restaurant.module';
@@ -23,7 +17,6 @@ import { Dish } from './restaurant/entities/dish.entity';
 import { OrdersModule } from './orders/orders.module';
 import { Order } from './orders/entities/order.entity';
 import { OrderItem } from './orders/entities/order-item.entity';
-import { Context } from 'vm';
 
 @Module({
   imports: [
@@ -70,18 +63,22 @@ import { Context } from 'vm';
     }),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
+      // web-socket 기능을 활성화시킨다.
       // installSubscriptionHandlers: true, 도 ws연결은 되지만,
       //  context 를 가져오는데 문제가 생긴다.
       subscriptions: {
         'subscriptions-transport-ws': {
           onConnect: (connectionParams: any) => {
+            // onConnect 함수가 context['token']으로 return 하는 듯
+            // frontend apollo.ts 에서 입력할때 x-jwt 소문자로 할것
             return { token: connectionParams['x-jwt'] };
           },
         },
       },
       // schema.gql 파일을 만들지 않으려면
       autoSchemaFile: true,
-      // http req 에 넣은 user 정보를 모든 graphql resolver 와 공유하기 위해
+      // resolver 가 호출될때 마다 context 안의 함수가 실행.
+      // 즉, http req를 가져와서 'x-jwt'를 찾아 token 이라는 이름으로 context 안에 쑤셔넣는다.
       context: ({ req }) => {
         return { token: req.headers['x-jwt'] };
       },

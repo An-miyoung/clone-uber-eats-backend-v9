@@ -35,7 +35,8 @@ export class UsersResolver {
   // @UseGuard(AuthGuard)
   // 한단계 더 진화해 app module 에서 APP_GUARD 를 선언해서 AuthGuard를 부를 수 있음.
   //  @Role 이라는 커스텀데코레이터를 만들어
-  // token이 있는지와 role 이 무엇인지 까지 체크
+  // token이 있는지와 role 이 무엇인지 메타데이터로 넣어주면
+  // 매번 @UseGuard(AuthGuard) 를 붙어주지 않아도 APP_GUARD 가 자동으로 모든 resolver 에서 부른다.
   @Query(() => User)
   @Role(['Any'])
   me(@AuthUser() user: User) {

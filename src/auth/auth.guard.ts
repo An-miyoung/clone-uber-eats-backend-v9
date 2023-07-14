@@ -14,6 +14,7 @@ export class AuthGuard implements CanActivate {
     private readonly userService: UsersService,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // metadata 중 roles 라고 쓴 데이터를 읽어온다.
     const roles = this.reflector.get<AllowedRoles>(
       'roles',
       context.getHandler(),
@@ -22,10 +23,12 @@ export class AuthGuard implements CanActivate {
     if (!roles) {
       return true;
     }
-    // metadata 가 있다면 context 에 user 가 필요한 endpoint 대응
-    const gqlContext = GqlExecutionContext.create(context).getContext();
 
-    const token = gqlContext.token;
+    // guard class 는 graphql 의 class 이기때문에, http 의 ExecutionContext 는 읽을수 없어서
+    // grappql 에서 읽을 수 있는 gqlContext 로 변환해준다.
+    // 변환시켜도 req 에 넣어줬던 token 은 같은 이름으로 변화돼 사용가능
+    const gqlContext = GqlExecutionContext.create(context).getContext();
+    const token = gqlContext['token'];
     if (token) {
       const decoded = this.jwtService.verify(token.toString());
       if (decoded) {
@@ -34,7 +37,10 @@ export class AuthGuard implements CanActivate {
           if (!user) {
             return false;
           }
+          // token이 갖고 user를 찾아서 gqlContext에 쑤셔넣어준다.
           gqlContext['user'] = user;
+
+          // metadata 가 있다면 context 에 user 가 필요한 endpoint 대응
           if (roles.includes('Any')) {
             return true;
           }
