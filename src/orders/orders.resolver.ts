@@ -9,7 +9,11 @@ import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
 import { Inject } from '@nestjs/common';
-import { PUB_SUB } from 'src/common/commom.constants';
+import {
+  NEW_COOKED_ORDER,
+  NEW_PENDING_ORDER,
+  PUB_SUB,
+} from 'src/common/commom.constants';
 import { PubSub } from 'graphql-subscriptions';
 
 @Resolver((of) => Order)
@@ -55,15 +59,32 @@ export class OrderResolver {
     return this.orderService.editOrder(user, editOrderInput);
   }
 
-  @Mutation(() => Boolean)
-  potatoReady() {
-    this.pubsub.publish('hotPotatoes', { readyPotato: 'Your Potato is ready' });
-    return true;
+  // @Subscription(() => Order, {
+  // subscription 이 제공하는 필터를 이용해 subscripton의 variables 와
+  // 이것에 변화를 주는 mutation 의 payload 를 비교해 같은 경우만 subscribe 한다
+  // 이 기능이 없다면 subscribe 의 의미가 없어진다.
+  // filter: ({ readyPotato }:payload, { id }:variables) => {
+  //   return readyPotato === id;
+  // },
+  // 사용자가 받을 알림의 내용을 바꿔준다.
+  // resolve: ({ readyPotato }) => `Youtr Potato ${readyPotato} id ready`,
+  // })
+  @Subscription(() => Order, {
+    filter: ({ pendingOrders: { ownerId } }, _, { user }) => {
+      return ownerId === user.id;
+    },
+    // Subscription(() => Order)이고 pendingorders: order 인 경우, resolve 를 만들필요 없다.
+    // Subscription(() => Order) 인데, payload 를 변형시켰기때문에 사용자가 받을 내용을 수정해 준다.
+    resolve: ({ pendingOrders: { order } }) => order,
+  })
+  @Role(['Owner'])
+  pendingOrders() {
+    return this.pubsub.asyncIterator(NEW_PENDING_ORDER);
   }
 
-  @Subscription(() => String)
-  @Role(['Any'])
-  readyPotato(@AuthUser() user: User) {
-    return this.pubsub.asyncIterator('hotPotatoes');
+  @Subscription(() => Order)
+  @Role(['Delivery'])
+  cookedOrders() {
+    return this.pubsub.asyncIterator(NEW_COOKED_ORDER);
   }
 }

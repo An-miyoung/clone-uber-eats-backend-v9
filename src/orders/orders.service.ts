@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order, OrderStatus } from './entities/order.entity';
 import { Repository } from 'typeorm';
@@ -10,7 +10,12 @@ import { Dish } from 'src/restaurant/entities/dish.entity';
 import { GetOrdersInput, GetOrdersOutput } from './dtos/get-orders.dto';
 import { GetOrderInput, GetOrderOutput } from './dtos/get-order.dto';
 import { EditOrderInput, EditOrderOutput } from './dtos/edit-order.dto';
-import { EditDishInput } from 'src/restaurant/dtos/edit-dish.dto';
+import { PubSub } from 'graphql-subscriptions';
+import {
+  NEW_COOKED_ORDER,
+  NEW_PENDING_ORDER,
+  PUB_SUB,
+} from 'src/common/commom.constants';
 
 @Injectable()
 export class OrderService {
@@ -22,6 +27,7 @@ export class OrderService {
     private readonly restaurants: Repository<Restaurant>,
     @InjectRepository(Dish)
     private readonly dishes: Repository<Dish>,
+    @Inject(PUB_SUB) private readonly pubSub: PubSub,
   ) {}
 
   async createOrder(
@@ -91,6 +97,12 @@ export class OrderService {
           totalPrice: orderFinalPrice,
         }),
       );
+      // subscription의 trigger
+      await this.pubSub.publish(NEW_PENDING_ORDER, {
+        // payload 에는 무엇이든 넣을 수 있다. restaurant의 ownerid 를 알아야
+        // subsription filtering 을 할 수 있다.
+        pendingOrders: { order, ownerId: restaurant.ownerId },
+      });
 
       return {
         ok: true,
@@ -246,12 +258,18 @@ export class OrderService {
         };
       }
       //  save 는 DB 에 있는 아이템이면 변화된 부분을 바꿔서 넣어준다.
-      await this.orders.save([
-        {
-          id,
-          status,
-        },
-      ]);
+      // 자신 고유의 필드값만 돌려받고 관계된 다른 table 의 값들은 돌려받지 못한다.
+      await this.orders.save({
+        id,
+        status,
+      });
+      if (user.role === UserRole.Owner) {
+        if (status === OrderStatus.Cooked) {
+          await this.pubSub.publish(NEW_COOKED_ORDER, {
+            cookedOrders: { ...order, status },
+          });
+        }
+      }
 
       return {
         ok: true,
