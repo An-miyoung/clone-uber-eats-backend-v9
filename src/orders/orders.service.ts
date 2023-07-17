@@ -17,6 +17,7 @@ import {
   NEW_PENDING_ORDER,
   PUB_SUB,
 } from 'src/common/commom.constants';
+import { TakeOrderInput, TakeOrderOutput } from './dtos/take-order.dto';
 
 @Injectable()
 export class OrderService {
@@ -283,6 +284,39 @@ export class OrderService {
       return {
         ok: false,
         error: '해당주문 수정하는데 실패했습니다.',
+      };
+    }
+  }
+
+  async takeOrder(
+    driver: User,
+    { id }: TakeOrderInput,
+  ): Promise<TakeOrderOutput> {
+    try {
+      const order = await this.orders.findOneBy({ id });
+      if (!order) {
+        return {
+          ok: false,
+          error: '주문이 존재하지 않습니다.',
+        };
+      }
+      if (order.driver) {
+        return {
+          ok: false,
+          error: '주문에 이미 드라이버가 등록돼 있습니다.',
+        };
+      }
+      await this.orders.save({ id, driver });
+      await this.pubSub.publish(NEW_ORDER_UPDATE, {
+        orderUpdates: { ...order, driver },
+      });
+      return {
+        ok: true,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '주문에 드라이버로 등록 하는데 실패했습니다.',
       };
     }
   }
