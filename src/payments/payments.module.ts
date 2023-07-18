@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
 import { PaymentsResolver } from './payments.resolver';
 import { PaymentsService } from './payments.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Payment } from './entities/payment.entity';
+import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
+import { User } from 'src/users/entities/user.entity';
 
 @Module({
-  providers: [PaymentsResolver, PaymentsService]
+  imports: [TypeOrmModule.forFeature([Payment, Restaurant])],
+  providers: [PaymentsResolver, PaymentsService],
 })
 export class PaymentsModule {}
