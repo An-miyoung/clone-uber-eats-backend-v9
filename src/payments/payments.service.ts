@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Payment } from './entities/payment.entity';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import {
   CreatePaymentInput,
   CreatePaymentOutput,
@@ -9,6 +9,7 @@ import {
 import { User } from 'src/users/entities/user.entity';
 import { Restaurant } from 'src/restaurant/entities/restaurant.entity';
 import { GetPaymentsOutput } from './dtos/get-payments.dto';
+import { Cron, SchedulerRegistry } from '@nestjs/schedule';
 
 @Injectable()
 export class PaymentsService {
@@ -16,6 +17,7 @@ export class PaymentsService {
     @InjectRepository(Payment) private readonly payments: Repository<Payment>,
     @InjectRepository(Restaurant)
     private readonly restaurants: Repository<Restaurant>,
+    private schedulerRegistry: SchedulerRegistry,
   ) {}
 
   async createPayment(
@@ -23,6 +25,7 @@ export class PaymentsService {
     { transactionId, restaurantId }: CreatePaymentInput,
   ): Promise<CreatePaymentOutput> {
     try {
+      const date = new Date();
       const restaurant = await this.restaurants.findOneBy({ id: restaurantId });
       if (!restaurant) {
         return {
@@ -39,9 +42,17 @@ export class PaymentsService {
           };
         }
       }
+
       await this.payments.save(
         this.payments.create({ user: owner, restaurant, transactionId }),
       );
+
+      restaurant.isPromoted = true;
+      // 한번 프로모션을 구매하면 7일간 진행
+      date.setDate(date.getDate() + 7);
+      restaurant.promotedUntil = date;
+      await this.restaurants.save(restaurant);
+
       return {
         ok: true,
       };
@@ -82,5 +93,23 @@ export class PaymentsService {
         error: '프로모션내용을 읽어오는데 실패했습니다.',
       };
     }
+  }
+
+  // 매일 아침 6시에 이 작업을 수행
+  @Cron('0 0 6 * * *')
+  async checkPromotedRetaurants() {
+    const restaurants = await this.restaurants.find({
+      where: {
+        // 프로모션날짜가 지냈음에도 계속 프로모션되는 가게만 찾는다.
+        isPromoted: true,
+        promotedUntil: LessThan(new Date()),
+      },
+    });
+    console.log(restaurants);
+    restaurants.forEach(async (restaurant) => {
+      restaurant.isPromoted = false;
+      restaurant.promotedUntil = null;
+      await this.restaurants.save(restaurant);
+    });
   }
 }
