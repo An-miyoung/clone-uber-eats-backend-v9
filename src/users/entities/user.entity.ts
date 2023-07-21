@@ -21,7 +21,7 @@ export enum UserRole {
 }
 
 // graphQl 용 enum 등록
-registerEnumType(UserRole, { name: 'UseRole' });
+registerEnumType(UserRole, { name: 'UserRole' });
 
 @InputType('UserInputType', { isAbstract: true })
 @ObjectType()
