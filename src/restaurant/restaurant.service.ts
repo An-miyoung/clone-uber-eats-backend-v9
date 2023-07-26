@@ -219,6 +219,7 @@ export class RestaurantService {
 
       return {
         ok: true,
+        restaurants,
         category,
         totalPages: Math.ceil(totalResult / itemsPerOnePage),
       };
