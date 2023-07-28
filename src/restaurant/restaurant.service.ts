@@ -28,6 +28,11 @@ import { CreateDishInput, CreateDishOutput } from './dtos/create-dish.dto';
 import { Dish } from './entities/dish.entity';
 import { DeleteDishInput, DeleteDishOutput } from './dtos/delete-dish.dto';
 import { EditDishInput, EditDishOutput } from './dtos/edit-dish.dto';
+import { MyRestaurantsOutput } from './dtos/my-restaurants.dto';
+import {
+  MyRestaurantInput,
+  MyRestaurantOutput,
+} from './dtos/my-restaurant.dto';
 
 @Injectable()
 export class RestaurantService {
@@ -157,6 +162,44 @@ export class RestaurantService {
     }
   }
 
+  async myRestaurants(owner: User): Promise<MyRestaurantsOutput> {
+    try {
+      const restaurants = await this.restaurants.find({
+        where: { ownerId: owner.id },
+      });
+      return {
+        ok: true,
+        restaurants,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '레스토랑을 가져오는데 실패했습니다.',
+      };
+    }
+  }
+
+  async myRestaurant(
+    owner: User,
+    { id }: MyRestaurantInput,
+  ): Promise<MyRestaurantOutput> {
+    try {
+      const restaurant = await this.restaurants.findOne({
+        where: { id, ownerId: owner.id },
+        relations: ['menu', 'orders'],
+      });
+      return {
+        ok: true,
+        restaurant,
+      };
+    } catch {
+      return {
+        ok: false,
+        error: '레스토랑을 가져오는데 실패했습니다.',
+      };
+    }
+  }
+
   async allCategories(): Promise<AllCategoriesOutput> {
     try {
       const categories = await this.categories.find();
@@ -215,13 +258,14 @@ export class RestaurantService {
         order: { isPromoted: 'desc' },
       });
       category.restaurants = restaurants;
-      const totalResult = await this.countRestaurant(category);
+      const totalResults = await this.countRestaurant(category);
 
       return {
         ok: true,
         restaurants,
         category,
-        totalPages: Math.ceil(totalResult / itemsPerOnePage),
+        totalPages: Math.ceil(totalResults / itemsPerOnePage),
+        totalResults,
       };
     } catch {
       return {
