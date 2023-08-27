@@ -33,6 +33,8 @@ import {
   MyRestaurantInput,
   MyRestaurantOutput,
 } from './dtos/my-restaurant.dto';
+import { ConfigService } from '@nestjs/config';
+import * as AWS from 'aws-sdk';
 
 @Injectable()
 export class RestaurantService {
@@ -42,6 +44,7 @@ export class RestaurantService {
     @InjectRepository(Category)
     private readonly categories: Repository<Category>,
     @InjectRepository(Dish) private readonly dishes: Repository<Dish>,
+    private readonly configService: ConfigService,
   ) {}
 
   async getOrCreateCategory(categoryName: string) {
@@ -136,6 +139,13 @@ export class RestaurantService {
     owner: User,
     { restaurantId }: DeleteRestaurantInput,
   ): Promise<DeleteRestaurantOutput> {
+    const BUCKET_NAME = this.configService.get('AWS_BUCKET_NAME');
+    AWS.config.update({
+      credentials: {
+        accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
+        secretAccessKey: this.configService.get('AWS_S3_SECRET_ACCESS_KEY'),
+      },
+    });
     try {
       const restaurant = await this.restaurants.findOneBy({ id: restaurantId });
       if (!restaurant) {
@@ -150,6 +160,15 @@ export class RestaurantService {
           error: '레스토랑을 삭제할 권한이 없습니다.',
         };
       }
+      const imageUrl = restaurant.coverImg;
+      const key = imageUrl.split('/')[4];
+
+      await new AWS.S3()
+        .deleteObject({
+          Bucket: `${BUCKET_NAME}/restaurant-coverImg`,
+          Key: key,
+        })
+        .promise();
       await this.restaurants.delete({ id: restaurantId });
       return {
         ok: true,
