@@ -87,6 +87,13 @@ export class RestaurantService {
     owner: User,
     editRestaurantInput: EditRestaurantInput,
   ): Promise<EditRestaurantOutput> {
+    const BUCKET_NAME = this.configService.get('AWS_BUCKET_NAME');
+    AWS.config.update({
+      credentials: {
+        accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
+        secretAccessKey: this.configService.get('AWS_S3_SECRET_ACCESS_KEY'),
+      },
+    });
     try {
       // 해당 restaurant 를 찾는다.
       // owner 가 맞는지 확인하기 위해 owner 의 Id 를 가져온다.
@@ -106,6 +113,18 @@ export class RestaurantService {
           ok: false,
           error: '레스토랑을 수정할 권한이 없습니다.',
         };
+      }
+      // 기존 이미지를 AWS S3에서 지워준다
+      const imageUrl = restaurant.coverImg;
+      if (editRestaurantInput.coverImg !== imageUrl) {
+        const key = imageUrl.split('/')[4];
+
+        await new AWS.S3()
+          .deleteObject({
+            Bucket: `${BUCKET_NAME}/restaurant-coverImg`,
+            Key: key,
+          })
+          .promise();
       }
 
       // 사용자가 카테고리를 입력값으로 주지 않으면 NULL 로 save 단계에서 category 는 pass
