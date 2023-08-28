@@ -484,6 +484,13 @@ export class RestaurantService {
     owner: User,
     { dishId }: DeleteDishInput,
   ): Promise<DeleteDishOutput> {
+    const BUCKET_NAME = this.configService.get('AWS_BUCKET_NAME');
+    AWS.config.update({
+      credentials: {
+        accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
+        secretAccessKey: this.configService.get('AWS_S3_SECRET_ACCESS_KEY'),
+      },
+    });
     try {
       const dish = await this.dishes.findOne({
         where: { id: dishId },
@@ -501,6 +508,15 @@ export class RestaurantService {
           error: '메뉴를 삭제할 권한이 없습니다.',
         };
       }
+      const imageUrl = dish.photo;
+      const key = imageUrl.split('/')[4];
+      await new AWS.S3()
+        .deleteObject({
+          Bucket: `${BUCKET_NAME}/restaurant-coverImg`,
+          Key: key,
+        })
+        .promise();
+
       await this.dishes.delete(dishId);
       return {
         ok: true,
