@@ -446,6 +446,13 @@ export class RestaurantService {
     owner: User,
     editDishInput: EditDishInput,
   ): Promise<EditDishOutput> {
+    const BUCKET_NAME = this.configService.get('AWS_BUCKET_NAME');
+    AWS.config.update({
+      credentials: {
+        accessKeyId: this.configService.get('AWS_S3_ACCESS_KEY'),
+        secretAccessKey: this.configService.get('AWS_S3_SECRET_ACCESS_KEY'),
+      },
+    });
     try {
       const dish = await this.dishes.findOne({
         where: { id: editDishInput.dishId },
@@ -463,6 +470,20 @@ export class RestaurantService {
           error: '메뉴를 수정할 권한이 없습니다.',
         };
       }
+
+      // 기존 이미지를 AWS S3에서 지워준다
+      const imageUrl = dish.photo;
+      if (editDishInput.photo !== imageUrl) {
+        const key = imageUrl.split('/')[4];
+
+        await new AWS.S3()
+          .deleteObject({
+            Bucket: `${BUCKET_NAME}/restaurant-coverImg`,
+            Key: key,
+          })
+          .promise();
+      }
+
       await this.dishes.save([
         {
           id: editDishInput.dishId,
