@@ -30,10 +30,10 @@ import { UploadsModule } from './uploads/uploads.module';
       isGlobal: true,
       // cross-env 를 인스톨해서 실행시 지시한 dev, prod 를 NODE_ENV 로 받아온다.
       envFilePath: process.env.NODE_ENV === 'dev' ? '.env.dev' : '.env.test',
-      ignoreEnvFile: process.env.NODE_ENV === 'prod',
+      ignoreEnvFile: process.env.NODE_ENV === 'production',
       // joi 를 인스톨해서 validation
       validationSchema: Joi.object({
-        NODE_ENV: Joi.string().valid('dev', 'prod', 'test').required(),
+        NODE_ENV: Joi.string().valid('dev', 'production', 'test').required(),
         DB_HOST: Joi.string().required(),
         DB_PORT: Joi.number().required(),
         DB_USERNAME: Joi.string().required(),
@@ -54,8 +54,8 @@ import { UploadsModule } from './uploads/uploads.module';
       database: process.env.DB_NAME,
       // data 를 자동으로 만들것인지에 대한 옵션
       // 실제 deploy 될때는 기존 DB 를 사용할수 있으므로 자동만들기 금지
-      synchronize: process.env.NODE_ENV !== 'prod',
-      logging: process.env.NODE_ENV !== 'prod',
+      synchronize: process.env.NODE_ENV !== 'production',
+      logging: process.env.NODE_ENV !== 'production',
       entities: [
         User,
         Verification,
